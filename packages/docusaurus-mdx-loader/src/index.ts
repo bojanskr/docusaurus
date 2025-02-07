@@ -5,13 +5,21 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import type {ReactNode} from 'react';
+
 import {mdxLoader} from './loader';
 
-import type {TOCItem as TOCItemImported} from './remark/toc';
+import type {TOCItem as TOCItemImported} from './remark/toc/types';
+
+export {createMDXLoaderRule, createMDXLoaderItem} from './createMDXLoader';
 
 export default mdxLoader;
 
 export type TOCItem = TOCItemImported;
+
+export type Format = 'md' | 'mdx';
+
+export type FormatInput = Format | 'detect';
 
 export type LoadedMDXContent<FrontMatter, Metadata, Assets = undefined> = {
   /** As verbatim declared in the MDX document. */
@@ -28,6 +36,9 @@ export type LoadedMDXContent<FrontMatter, Metadata, Assets = undefined> = {
    * in priority.
    */
   readonly assets: Assets;
-  (): JSX.Element;
+  (): ReactNode;
 };
-export type {Options, MDXPlugin, MDXOptions} from './loader';
+
+export type {MDXPlugin} from './loader';
+export type {MDXOptions} from './processor';
+export type {Options} from './options';
