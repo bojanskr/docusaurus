@@ -7,11 +7,17 @@
 
 /* eslint-disable jsx-a11y/no-autofocus */
 
-import React, {useEffect, useReducer, useRef, useState} from 'react';
+import React, {
+  type ReactNode,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import clsx from 'clsx';
 
 import algoliaSearchHelper from 'algoliasearch-helper';
-import algoliaSearch from 'algoliasearch/lite';
+import {liteClient} from 'algoliasearch/lite';
 
 import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 import Head from '@docusaurus/Head';
@@ -154,13 +160,14 @@ type ResultDispatcher =
   | {type: 'update'; value: ResultDispatcherState}
   | {type: 'advance'; value?: undefined};
 
-function SearchPageContent(): JSX.Element {
+function SearchPageContent(): ReactNode {
   const {
     i18n: {currentLocale},
   } = useDocusaurusContext();
   const {
-    algolia: {appId, apiKey, indexName},
+    algolia: {appId, apiKey, indexName, contextualSearch},
   } = useAlgoliaThemeConfig();
+
   const processSearchResultUrl = useSearchResultUrlProcessor();
   const documentsFoundPlural = useDocumentsFoundPlural();
 
@@ -213,11 +220,18 @@ function SearchPageContent(): JSX.Element {
     initialSearchResultState,
   );
 
-  const algoliaClient = algoliaSearch(appId, apiKey);
+  // respect settings from the theme config for facets
+  const disjunctiveFacets = contextualSearch
+    ? ['language', 'docusaurus_tag']
+    : [];
+
+  const algoliaClient = liteClient(appId, apiKey);
   const algoliaHelper = algoliaSearchHelper(algoliaClient, indexName, {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore: why errors happens after upgrading to TS 5.5 ?
     hitsPerPage: 15,
     advancedSyntax: true,
-    disjunctiveFacets: ['language', 'docusaurus_tag'],
+    disjunctiveFacets,
   });
 
   algoliaHelper.on(
@@ -313,17 +327,19 @@ function SearchPageContent(): JSX.Element {
         });
 
   const makeSearch = useEvent((page: number = 0) => {
-    algoliaHelper.addDisjunctiveFacetRefinement('docusaurus_tag', 'default');
-    algoliaHelper.addDisjunctiveFacetRefinement('language', currentLocale);
+    if (contextualSearch) {
+      algoliaHelper.addDisjunctiveFacetRefinement('docusaurus_tag', 'default');
+      algoliaHelper.addDisjunctiveFacetRefinement('language', currentLocale);
 
-    Object.entries(docsSearchVersionsHelpers.searchVersions).forEach(
-      ([pluginId, searchVersion]) => {
-        algoliaHelper.addDisjunctiveFacetRefinement(
-          'docusaurus_tag',
-          `docs-${pluginId}-${searchVersion}`,
-        );
-      },
-    );
+      Object.entries(docsSearchVersionsHelpers.searchVersions).forEach(
+        ([pluginId, searchVersion]) => {
+          algoliaHelper.addDisjunctiveFacetRefinement(
+            'docusaurus_tag',
+            `docs-${pluginId}-${searchVersion}`,
+          );
+        },
+      );
+    }
 
     algoliaHelper.setQuery(searchQuery).setPage(page).search();
   });
@@ -401,7 +417,7 @@ function SearchPageContent(): JSX.Element {
             />
           </div>
 
-          {docsSearchVersionsHelpers.versioningEnabled && (
+          {contextualSearch && docsSearchVersionsHelpers.versioningEnabled && (
             <SearchVersionSelectList
               docsSearchVersionsHelpers={docsSearchVersionsHelpers}
             />
@@ -520,7 +536,7 @@ function SearchPageContent(): JSX.Element {
   );
 }
 
-export default function SearchPage(): JSX.Element {
+export default function SearchPage(): ReactNode {
   return (
     <HtmlClassNameProvider className="search-page-wrapper">
       <SearchPageContent />

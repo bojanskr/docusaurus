@@ -5,9 +5,14 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import React, {useCallback, useState, useRef, useEffect} from 'react';
+import React, {
+  useCallback,
+  useState,
+  useRef,
+  useEffect,
+  type ReactNode,
+} from 'react';
 import clsx from 'clsx';
-// @ts-expect-error: TODO, we need to make theme-classic have type: module
 import copy from 'copy-text-to-clipboard';
 import {translate} from '@docusaurus/Translate';
 import type {Props} from '@theme/CodeBlock/CopyButton';
@@ -16,7 +21,7 @@ import IconSuccess from '@theme/Icon/Success';
 
 import styles from './styles.module.css';
 
-export default function CopyButton({code, className}: Props): JSX.Element {
+export default function CopyButton({code, className}: Props): ReactNode {
   const [isCopied, setIsCopied] = useState(false);
   const copyTimeout = useRef<number | undefined>(undefined);
   const handleCopyCode = useCallback(() => {
