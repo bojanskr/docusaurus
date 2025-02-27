@@ -7,24 +7,21 @@
 
 import fs from 'fs-extra';
 import path from 'path';
-import {loadContext, type LoadContextOptions} from '../server';
+import {globTranslatableSourceFiles} from '@docusaurus/utils';
+import {loadContext, type LoadContextParams} from '../server/site';
 import {initPlugins} from '../server/plugins/init';
 import {
   writePluginTranslations,
   writeCodeTranslations,
   type WriteTranslationsOptions,
-  getPluginsDefaultCodeTranslationMessages,
+  loadPluginsDefaultCodeTranslationMessages,
   applyDefaultCodeTranslations,
 } from '../server/translations/translations';
-import {
-  extractSiteSourceCodeTranslations,
-  globSourceCodeFilePaths,
-} from '../server/translations/translationsExtractor';
-import {getCustomBabelConfigFilePath, getBabelOptions} from '../webpack/utils';
+import {extractSiteSourceCodeTranslations} from '../server/translations/translationsExtractor';
 import type {InitializedPlugin} from '@docusaurus/types';
 
 export type WriteTranslationsCLIOptions = Pick<
-  LoadContextOptions,
+  LoadContextParams,
   'config' | 'locale'
 > &
   WriteTranslationsOptions;
@@ -49,7 +46,7 @@ async function getExtraSourceCodeFilePaths(): Promise<string[]> {
   if (!themeCommonLibDir) {
     return []; // User may not use a Docusaurus official theme? Quite unlikely...
   }
-  return globSourceCodeFilePaths([themeCommonLibDir]);
+  return globTranslatableSourceFiles([themeCommonLibDir]);
 }
 
 async function writePluginTranslationFiles({
@@ -103,18 +100,13 @@ Available locales are: ${context.i18n.locales.join(',')}.`,
     );
   }
 
-  const babelOptions = getBabelOptions({
-    isServer: true,
-    babelOptions: await getCustomBabelConfigFilePath(siteDir),
-  });
-  const extractedCodeTranslations = await extractSiteSourceCodeTranslations(
+  const extractedCodeTranslations = await extractSiteSourceCodeTranslations({
     siteDir,
     plugins,
-    babelOptions,
-    await getExtraSourceCodeFilePaths(),
-  );
+    extraSourceCodeFilePaths: await getExtraSourceCodeFilePaths(),
+  });
 
-  const defaultCodeMessages = await getPluginsDefaultCodeTranslationMessages(
+  const defaultCodeMessages = await loadPluginsDefaultCodeTranslationMessages(
     plugins,
   );
 

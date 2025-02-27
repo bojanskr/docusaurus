@@ -5,7 +5,12 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import React, {type ComponentProps, useEffect, useMemo} from 'react';
+import React, {
+  type ComponentProps,
+  type ReactNode,
+  useEffect,
+  useMemo,
+} from 'react';
 import clsx from 'clsx';
 import {
   ThemeClassNames,
@@ -14,12 +19,12 @@ import {
   Collapsible,
   useCollapsible,
 } from '@docusaurus/theme-common';
+import {isSamePath} from '@docusaurus/theme-common/internal';
 import {
   isActiveSidebarItem,
   findFirstSidebarItemLink,
   useDocSidebarItemsExpandedState,
-  isSamePath,
-} from '@docusaurus/theme-common/internal';
+} from '@docusaurus/plugin-content-docs/client';
 import Link from '@docusaurus/Link';
 import {translate} from '@docusaurus/Translate';
 import useIsBrowser from '@docusaurus/useIsBrowser';
@@ -72,23 +77,36 @@ function useCategoryHrefWithSSRFallback(
 }
 
 function CollapseButton({
+  collapsed,
   categoryLabel,
   onClick,
 }: {
+  collapsed: boolean;
   categoryLabel: string;
   onClick: ComponentProps<'button'>['onClick'];
 }) {
   return (
     <button
-      aria-label={translate(
-        {
-          id: 'theme.DocSidebarItem.toggleCollapsedCategoryAriaLabel',
-          message: "Toggle the collapsible sidebar category '{label}'",
-          description:
-            'The ARIA label to toggle the collapsible sidebar category',
-        },
-        {label: categoryLabel},
-      )}
+      aria-label={
+        collapsed
+          ? translate(
+              {
+                id: 'theme.DocSidebarItem.expandCategoryAriaLabel',
+                message: "Expand sidebar category '{label}'",
+                description: 'The ARIA label to expand the sidebar category',
+              },
+              {label: categoryLabel},
+            )
+          : translate(
+              {
+                id: 'theme.DocSidebarItem.collapseCategoryAriaLabel',
+                message: "Collapse sidebar category '{label}'",
+                description: 'The ARIA label to collapse the sidebar category',
+              },
+              {label: categoryLabel},
+            )
+      }
+      aria-expanded={!collapsed}
       type="button"
       className="clean-btn menu__caret"
       onClick={onClick}
@@ -103,7 +121,7 @@ export default function DocSidebarItemCategory({
   level,
   index,
   ...props
-}: Props): JSX.Element {
+}: Props): ReactNode {
   const {items, label, collapsible, className, href} = item;
   const {
     docs: {
@@ -170,7 +188,14 @@ export default function DocSidebarItemCategory({
               ? (e) => {
                   onItemClick?.(item);
                   if (href) {
-                    updateCollapsed(false);
+                    if (isActive) {
+                      e.preventDefault();
+                      updateCollapsed();
+                    } else {
+                      // When navigating to a new category, we always expand
+                      // see https://github.com/facebook/docusaurus/issues/10854#issuecomment-2609616182
+                      updateCollapsed(false);
+                    }
                   } else {
                     e.preventDefault();
                     updateCollapsed();
@@ -181,13 +206,15 @@ export default function DocSidebarItemCategory({
                 }
           }
           aria-current={isCurrentPage ? 'page' : undefined}
-          aria-expanded={collapsible ? !collapsed : undefined}
+          role={collapsible && !href ? 'button' : undefined}
+          aria-expanded={collapsible && !href ? !collapsed : undefined}
           href={collapsible ? hrefWithSSRFallback ?? '#' : hrefWithSSRFallback}
           {...props}>
           {label}
         </Link>
         {href && collapsible && (
           <CollapseButton
+            collapsed={collapsed}
             categoryLabel={label}
             onClick={(e) => {
               e.preventDefault();
