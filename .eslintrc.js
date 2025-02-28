@@ -9,16 +9,18 @@ const OFF = 0;
 const WARNING = 1;
 const ERROR = 2;
 
-const ClientRestrictedImportPatterns = [
-  // Prevent importing lodash in client bundle for bundle size
-  'lodash',
-  'lodash.**',
-  'lodash/**',
-  // Prevent importing server code in client bundle
-  '**/../babel/**',
-  '**/../server/**',
-  '**/../commands/**',
-  '**/../webpack/**',
+// Prevent importing lodash, usually for browser bundle size reasons
+const LodashImportPatterns = ['lodash', 'lodash.**', 'lodash/**'];
+
+// Prevent importing content plugins, usually for coupling reasons
+const ContentPluginsImportPatterns = [
+  '@docusaurus/plugin-content-blog',
+  '@docusaurus/plugin-content-blog/**',
+  // TODO fix theme-common => docs dependency issue
+  // '@docusaurus/plugin-content-docs',
+  // '@docusaurus/plugin-content-docs/**',
+  '@docusaurus/plugin-content-pages',
+  '@docusaurus/plugin-content-pages/**',
 ];
 
 module.exports = {
@@ -32,7 +34,7 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
     // tsconfigRootDir: __dirname,
-    // project: ['./tsconfig.json', './website/tsconfig.json'],
+    // project: ['./tsconfig.base.json', './website/tsconfig.base.json'],
   },
   globals: {
     JSX: true,
@@ -66,6 +68,8 @@ module.exports = {
     '@docusaurus',
   ],
   rules: {
+    'react/jsx-uses-react': OFF, // JSX runtime: automatic
+    'react/react-in-jsx-scope': OFF, // JSX runtime: automatic
     'array-callback-return': WARNING,
     camelcase: WARNING,
     'class-methods-use-this': OFF, // It's a way of allowing private variables.
@@ -83,13 +87,14 @@ module.exports = {
         ignorePattern: '(eslint-disable|@)',
       },
     ],
+    'arrow-body-style': OFF,
     'no-await-in-loop': OFF,
     'no-case-declarations': WARNING,
     'no-console': OFF,
     'no-constant-binary-expression': ERROR,
     'no-continue': OFF,
     'no-control-regex': WARNING,
-    'no-else-return': [WARNING, {allowElseIf: true}],
+    'no-else-return': OFF,
     'no-empty': [WARNING, {allowEmptyCatch: true}],
     'no-lonely-if': WARNING,
     'no-nested-ternary': WARNING,
@@ -201,7 +206,10 @@ module.exports = {
       })),
     ],
     'no-template-curly-in-string': WARNING,
-    'no-unused-expressions': [WARNING, {allowTaggedTemplates: true}],
+    'no-unused-expressions': [
+      WARNING,
+      {allowTaggedTemplates: true, allowShortCircuit: true},
+    ],
     'no-useless-escape': WARNING,
     'no-void': [ERROR, {allowAsStatement: true}],
     'prefer-destructuring': WARNING,
@@ -259,6 +267,9 @@ module.exports = {
           },
           {pattern: '@jest/globals', group: 'builtin', position: 'before'},
           {pattern: 'react', group: 'builtin', position: 'before'},
+          {pattern: 'react-dom', group: 'builtin', position: 'before'},
+          {pattern: 'react-dom/**', group: 'builtin', position: 'before'},
+          {pattern: 'stream', group: 'builtin', position: 'before'},
           {pattern: 'fs-extra', group: 'builtin'},
           {pattern: 'lodash', group: 'external', position: 'before'},
           {pattern: 'clsx', group: 'external', position: 'before'},
@@ -339,10 +350,7 @@ module.exports = {
       ERROR,
       {'ts-expect-error': 'allow-with-description'},
     ],
-    '@typescript-eslint/consistent-indexed-object-style': [
-      WARNING,
-      'index-signature',
-    ],
+    '@typescript-eslint/consistent-indexed-object-style': OFF,
     '@typescript-eslint/consistent-type-imports': [
       WARNING,
       {disallowTypeAnnotations: false},
@@ -372,7 +380,14 @@ module.exports = {
     // We don't provide any escape hatches for this rule. Rest siblings and
     // function placeholder params are always ignored, and any other unused
     // locals must be justified with a disable comment.
-    '@typescript-eslint/no-unused-vars': [ERROR, {ignoreRestSiblings: true}],
+    '@typescript-eslint/no-unused-vars': [
+      ERROR,
+      {
+        ignoreRestSiblings: true,
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      },
+    ],
     '@typescript-eslint/prefer-optional-chain': ERROR,
     '@docusaurus/no-html-links': ERROR,
     '@docusaurus/prefer-docusaurus-heading': ERROR,
@@ -388,6 +403,7 @@ module.exports = {
           '@',
           'WebContainers',
           'Twitter',
+          'X',
           'GitHub',
           'Dev.to',
           '1.x',
@@ -402,7 +418,33 @@ module.exports = {
         'no-restricted-imports': [
           'error',
           {
-            patterns: ClientRestrictedImportPatterns,
+            patterns: [
+              ...LodashImportPatterns,
+              ...ContentPluginsImportPatterns,
+              // Prevent importing server code in client bundle
+              '**/../babel/**',
+              '**/../server/**',
+              '**/../commands/**',
+              '**/../webpack/**',
+            ],
+          },
+        ],
+      },
+    },
+    {
+      files: [
+        'packages/docusaurus-theme-common/src/**/*.{js,ts,tsx}',
+        'packages/docusaurus-utils-common/src/**/*.{js,ts,tsx}',
+      ],
+      excludedFiles: '*.test.{js,ts,tsx}',
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              ...LodashImportPatterns,
+              ...ContentPluginsImportPatterns,
+            ],
           },
         ],
       },
@@ -414,7 +456,7 @@ module.exports = {
         'no-restricted-imports': [
           'error',
           {
-            patterns: ClientRestrictedImportPatterns.concat(
+            patterns: LodashImportPatterns.concat(
               // Prevents relative imports between React theme components
               [
                 '../**',

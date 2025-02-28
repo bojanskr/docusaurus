@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
+import React, {type ReactNode} from 'react';
 import clsx from 'clsx';
 import useIsBrowser from '@docusaurus/useIsBrowser';
 import {LiveProvider, LiveEditor, LiveError, LivePreview} from 'react-live';
@@ -13,18 +13,17 @@ import Translate from '@docusaurus/Translate';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import BrowserOnly from '@docusaurus/BrowserOnly';
 import {
-  ErrorBoundaryTryAgainButton,
+  ErrorBoundaryErrorMessageFallback,
   usePrismTheme,
 } from '@docusaurus/theme-common';
 import ErrorBoundary from '@docusaurus/ErrorBoundary';
 
 import type {Props} from '@theme/Playground';
-import type {Props as ErrorProps} from '@theme/Error';
 import type {ThemeConfig} from '@docusaurus/theme-live-codeblock';
 
 import styles from './styles.module.css';
 
-function Header({children}: {children: React.ReactNode}) {
+function Header({children}: {children: ReactNode}) {
   return <div className={clsx(styles.playgroundHeader)}>{children}</div>;
 }
 
@@ -34,15 +33,6 @@ function LivePreviewLoader() {
   return <div>Loading...</div>;
 }
 
-function ErrorFallback({error, tryAgain}: ErrorProps): JSX.Element {
-  return (
-    <div className={styles.errorFallback}>
-      <p>{error.message}</p>
-      <ErrorBoundaryTryAgainButton onClick={tryAgain} />
-    </div>
-  );
-}
-
 function Preview() {
   // No SSR for the live preview
   // See https://github.com/facebook/docusaurus/issues/5747
@@ -50,7 +40,10 @@ function Preview() {
     <BrowserOnly fallback={<LivePreviewLoader />}>
       {() => (
         <>
-          <ErrorBoundary fallback={(params) => <ErrorFallback {...params} />}>
+          <ErrorBoundary
+            fallback={(params) => (
+              <ErrorBoundaryErrorMessageFallback {...params} />
+            )}>
             <LivePreview />
           </ErrorBoundary>
           <LiveError />
@@ -105,11 +98,15 @@ function EditorWithHeader() {
   );
 }
 
+// this should rather be a stable function
+// see https://github.com/facebook/docusaurus/issues/9630#issuecomment-1855682643
+const DEFAULT_TRANSFORM_CODE = (code: string) => `${code};`;
+
 export default function Playground({
   children,
   transformCode,
   ...props
-}: Props): JSX.Element {
+}: Props): ReactNode {
   const {
     siteConfig: {themeConfig},
   } = useDocusaurusContext();
@@ -122,11 +119,10 @@ export default function Playground({
 
   return (
     <div className={styles.playgroundContainer}>
-      {/* @ts-expect-error: type incompatibility with refs */}
       <LiveProvider
-        code={children.replace(/\n$/, '')}
+        code={children?.replace(/\n$/, '')}
         noInline={noInline}
-        transformCode={transformCode ?? ((code) => `${code};`)}
+        transformCode={transformCode ?? DEFAULT_TRANSFORM_CODE}
         theme={prismTheme}
         {...props}>
         {playgroundPosition === 'top' ? (

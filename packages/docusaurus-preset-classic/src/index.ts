@@ -37,6 +37,7 @@ export default function preset(
     blog,
     pages,
     sitemap,
+    svgr,
     theme,
     googleAnalytics,
     gtag,
@@ -89,8 +90,11 @@ export default function preset(
       ),
     );
   }
-  if (isProd && sitemap !== false) {
+  if (sitemap !== false && (isProd || debug)) {
     plugins.push(makePluginConfig('@docusaurus/plugin-sitemap', sitemap));
+  }
+  if (svgr !== false) {
+    plugins.push(makePluginConfig('@docusaurus/plugin-svgr', svgr));
   }
   if (Object.keys(rest).length > 0) {
     throw new Error(

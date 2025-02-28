@@ -10,8 +10,10 @@ import React, {
   useState,
   type ComponentProps,
   type ReactElement,
+  type ReactNode,
 } from 'react';
 import clsx from 'clsx';
+import useBrokenLinks from '@docusaurus/useBrokenLinks';
 import useIsBrowser from '@docusaurus/useIsBrowser';
 import {useCollapsible, Collapsible} from '../Collapsible';
 import styles from './styles.module.css';
@@ -46,7 +48,9 @@ export function Details({
   summary,
   children,
   ...props
-}: DetailsProps): JSX.Element {
+}: DetailsProps): ReactNode {
+  useBrokenLinks().collectAnchor(props.id);
+
   const isBrowser = useIsBrowser();
   const detailsRef = useRef<HTMLDetailsElement>(null);
 
@@ -105,7 +109,6 @@ export function Details({
       <Collapsible
         lazy={false} // Content might matter for SEO in this case
         collapsed={collapsed}
-        disableSSRStyle // Allows component to work fine even with JS disabled!
         onCollapseTransitionEnd={(newCollapsed) => {
           setCollapsed(newCollapsed);
           setOpen(!newCollapsed);

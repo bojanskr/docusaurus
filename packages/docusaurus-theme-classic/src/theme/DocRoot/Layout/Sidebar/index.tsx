@@ -7,8 +7,8 @@
 
 import React, {type ReactNode, useState, useCallback} from 'react';
 import clsx from 'clsx';
-import {ThemeClassNames} from '@docusaurus/theme-common';
-import {useDocsSidebar} from '@docusaurus/theme-common/internal';
+import {prefersReducedMotion, ThemeClassNames} from '@docusaurus/theme-common';
+import {useDocsSidebar} from '@docusaurus/plugin-content-docs/client';
 import {useLocation} from '@docusaurus/router';
 import DocSidebar from '@theme/DocSidebar';
 import ExpandButton from '@theme/DocRoot/Layout/Sidebar/ExpandButton';
@@ -32,13 +32,18 @@ export default function DocRootLayoutSidebar({
   sidebar,
   hiddenSidebarContainer,
   setHiddenSidebarContainer,
-}: Props): JSX.Element {
+}: Props): ReactNode {
   const {pathname} = useLocation();
 
   const [hiddenSidebar, setHiddenSidebar] = useState(false);
   const toggleSidebar = useCallback(() => {
     if (hiddenSidebar) {
       setHiddenSidebar(false);
+    }
+    // onTransitionEnd won't fire when sidebar animation is disabled
+    // fixes https://github.com/facebook/docusaurus/issues/8918
+    if (!hiddenSidebar && prefersReducedMotion()) {
+      setHiddenSidebar(true);
     }
     setHiddenSidebarContainer((value) => !value);
   }, [setHiddenSidebarContainer, hiddenSidebar]);

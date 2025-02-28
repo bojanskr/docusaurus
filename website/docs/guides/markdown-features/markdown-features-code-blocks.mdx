@@ -59,28 +59,30 @@ console.log('Every repo must come with a mascot.');
 
 ### Theming {#theming}
 
-By default, the Prism [syntax highlighting theme](https://github.com/FormidableLabs/prism-react-renderer#theming) we use is [Palenight](https://github.com/FormidableLabs/prism-react-renderer/blob/master/src/themes/palenight.js). You can change this to another theme by passing `theme` field in `prism` as `themeConfig` in your docusaurus.config.js.
+By default, the Prism [syntax highlighting theme](https://github.com/FormidableLabs/prism-react-renderer#theming) we use is [Palenight](https://github.com/FormidableLabs/prism-react-renderer/blob/master/packages/prism-react-renderer/src/themes/palenight.ts). You can change this to another theme by passing `theme` field in `prism` as `themeConfig` in your docusaurus.config.js.
 
 For example, if you prefer to use the `dracula` highlighting theme:
 
 ```js title="docusaurus.config.js"
-module.exports = {
+import {themes as prismThemes} from 'prism-react-renderer';
+
+export default {
   themeConfig: {
     prism: {
       // highlight-next-line
-      theme: require('prism-react-renderer/themes/dracula'),
+      theme: prismThemes.dracula,
     },
   },
 };
 ```
 
-Because a Prism theme is just a JS object, you can also write your own theme if you are not satisfied with the default. Docusaurus enhances the `github` and `vsDark` themes to provide richer highlight, and you can check our implementations for the [light](https://github.com/facebook/docusaurus/blob/main/website/src/utils/prismLight.mjs) and [dark](https://github.com/facebook/docusaurus/blob/main/website/src/utils/prismDark.mjs) code block themes.
+Because a Prism theme is just a JS object, you can also write your own theme if you are not satisfied with the default. Docusaurus enhances the `github` and `vsDark` themes to provide richer highlight, and you can check our implementations for the [light](https://github.com/facebook/docusaurus/blob/main/website/src/utils/prismLight.ts) and [dark](https://github.com/facebook/docusaurus/blob/main/website/src/utils/prismDark.ts) code block themes.
 
 ### Supported Languages {#supported-languages}
 
-By default, Docusaurus comes with a subset of [commonly used languages](https://github.com/FormidableLabs/prism-react-renderer/blob/master/src/vendor/prism/includeLangs.js).
+By default, Docusaurus comes with a subset of [commonly used languages](https://github.com/FormidableLabs/prism-react-renderer/blob/master/packages/generate-prism-languages/index.ts#L9-L23).
 
-:::caution
+:::warning
 
 Some popular languages like Java, C#, or PHP are not enabled by default.
 
@@ -97,7 +99,7 @@ Each additional language has to be a valid Prism component name. For example, Pr
 For example, if you want to add highlighting for the PowerShell language:
 
 ```js title="docusaurus.config.js"
-module.exports = {
+export default {
   // ...
   themeConfig: {
     prism: {
@@ -299,7 +301,7 @@ You can declare custom magic comments through theme config. For example, you can
 ```
 
 ```js
-module.exports = {
+export default {
   themeConfig: {
     prism: {
       magicComments: [
@@ -393,18 +395,12 @@ The `Line` component will receive the list of class names, based on which you ca
 You can enable line numbering for your code block by using `showLineNumbers` key within the language meta string (don't forget to add space directly before the key).
 
 ````md
-```jsx {1,4-6,11} showLineNumbers
+```jsx showLineNumbers
 import React from 'react';
 
-function MyComponent(props) {
-  if (props.isBar) {
-    return <div>Bar</div>;
-  }
-
+export default function MyComponent(props) {
   return <div>Foo</div>;
 }
-
-export default MyComponent;
 ```
 ````
 
@@ -412,18 +408,36 @@ export default MyComponent;
 <BrowserWindow>
 ```
 
-```jsx {1,4-6,11} showLineNumbers
+```jsx showLineNumbers
 import React from 'react';
 
-function MyComponent(props) {
-  if (props.isBar) {
-    return <div>Bar</div>;
-  }
-
+export default function MyComponent(props) {
   return <div>Foo</div>;
 }
+```
 
-export default MyComponent;
+```mdx-code-block
+</BrowserWindow>
+```
+
+By default, the counter starts at line number 1. It's possible to pass a custom counter start value to split large code blocks for readability:
+
+````md
+```jsx showLineNumbers=3
+export default function MyComponent(props) {
+  return <div>Foo</div>;
+}
+```
+````
+
+```mdx-code-block
+<BrowserWindow>
+```
+
+```jsx showLineNumbers=3
+export default function MyComponent(props) {
+  return <div>Foo</div>;
+}
 ```
 
 ```mdx-code-block
@@ -443,7 +457,7 @@ npm install --save @docusaurus/theme-live-codeblock
 You will also need to add the plugin to your `docusaurus.config.js`.
 
 ```js {3}
-module.exports = {
+export default {
   // ...
   themes: ['@docusaurus/theme-live-codeblock'],
   // ...
@@ -512,7 +526,7 @@ function Clock(props) {
 
 ### Imports {#imports}
 
-:::caution react-live and imports
+:::warning react-live and imports
 
 It is not possible to import components directly from the react-live code editor, you have to define available imports upfront.
 
@@ -644,13 +658,13 @@ If you want to embed HTML markup such as anchor links or bold type, you can use 
   </pre>
 </BrowserWindow>
 
-:::caution MDX is whitespace insensitive
+:::warning MDX is whitespace insensitive
 
 MDX is in line with JSX behavior: line break characters, even when inside `<pre>`, are turned into spaces. You have to explicitly write the new line character for it to be printed out.
 
 :::
 
-:::caution
+:::warning
 
 Syntax highlighting only works on plain strings. Docusaurus will not attempt to parse code block content containing JSX children.
 
@@ -756,7 +770,7 @@ npm install @docusaurus/remark-plugin-npm2yarn
 Docusaurus provides such a utility out of the box, freeing you from using the `Tabs` component every time. To enable this feature, first install the `@docusaurus/remark-plugin-npm2yarn` package as above, and then in `docusaurus.config.js`, for the plugins where you need this feature (doc, blog, pages, etc.), register it in the `remarkPlugins` option. (See [Docs configuration](../../api/plugins/plugin-content-docs.mdx#ex-config) for more details on configuration format)
 
 ```js title="docusaurus.config.js"
-module.exports = {
+export default {
   // ...
   presets: [
     [

@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
+import React, {type ReactNode} from 'react';
 import Head from '@docusaurus/Head';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import useBaseUrl from '@docusaurus/useBaseUrl';
@@ -16,17 +16,27 @@ import {
   keyboardFocusedClassName,
 } from '@docusaurus/theme-common/internal';
 import {useLocation} from '@docusaurus/router';
+import {applyTrailingSlash} from '@docusaurus/utils-common';
 import SearchMetadata from '@theme/SearchMetadata';
 
 // TODO move to SiteMetadataDefaults or theme-common ?
 // Useful for i18n/SEO
 // See https://developers.google.com/search/docs/advanced/crawling/localized-versions
 // See https://github.com/facebook/docusaurus/issues/3317
-function AlternateLangHeaders(): JSX.Element {
+function AlternateLangHeaders(): ReactNode {
   const {
-    i18n: {defaultLocale, localeConfigs},
+    i18n: {currentLocale, defaultLocale, localeConfigs},
   } = useDocusaurusContext();
   const alternatePageUtils = useAlternatePageUtils();
+
+  const currentHtmlLang = localeConfigs[currentLocale]!.htmlLang;
+
+  // HTML lang is a BCP 47 tag, but the Open Graph protocol requires
+  // using underscores instead of dashes.
+  // See https://ogp.me/#optional
+  // See https://en.wikipedia.org/wiki/IETF_language_tag)
+  const bcp47ToOpenGraphLocale = (code: string): string =>
+    code.replace('-', '_');
 
   // Note: it is fine to use both "x-default" and "en" to target the same url
   // See https://www.searchviu.com/en/multiple-hreflang-tags-one-url/
@@ -51,6 +61,20 @@ function AlternateLangHeaders(): JSX.Element {
         })}
         hrefLang="x-default"
       />
+
+      <meta
+        property="og:locale"
+        content={bcp47ToOpenGraphLocale(currentHtmlLang)}
+      />
+      {Object.values(localeConfigs)
+        .filter((config) => currentHtmlLang !== config.htmlLang)
+        .map((config) => (
+          <meta
+            key={`meta-og-${config.htmlLang}`}
+            property="og:locale:alternate"
+            content={bcp47ToOpenGraphLocale(config.htmlLang)}
+          />
+        ))}
     </Head>
   );
 }
@@ -58,10 +82,19 @@ function AlternateLangHeaders(): JSX.Element {
 // Default canonical url inferred from current page location pathname
 function useDefaultCanonicalUrl() {
   const {
-    siteConfig: {url: siteUrl},
+    siteConfig: {url: siteUrl, baseUrl, trailingSlash},
   } = useDocusaurusContext();
+
+  // TODO using useLocation().pathname is not a super idea
+  // See https://github.com/facebook/docusaurus/issues/9170
   const {pathname} = useLocation();
-  return siteUrl + useBaseUrl(pathname);
+
+  const canonicalPathname = applyTrailingSlash(useBaseUrl(pathname), {
+    trailingSlash,
+    baseUrl,
+  });
+
+  return siteUrl + canonicalPathname;
 }
 
 // TODO move to SiteMetadataDefaults or theme-common ?
@@ -82,7 +115,7 @@ function CanonicalUrlHeaders({permalink}: {permalink?: string}) {
   );
 }
 
-export default function SiteMetadata(): JSX.Element {
+export default function SiteMetadata(): ReactNode {
   const {
     i18n: {currentLocale},
   } = useDocusaurusContext();

@@ -5,7 +5,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import visit from 'unist-util-visit';
 import npmToYarn from 'npm-to-yarn';
 import type {Code, Literal} from 'mdast';
 // @ts-expect-error: TODO see https://github.com/microsoft/TypeScript/issues/49721
@@ -21,7 +20,7 @@ import type {Transformer} from 'unified';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Plugin<T> = any; // TODO fix this asap
 
-type KnownConverter = 'yarn' | 'pnpm';
+type KnownConverter = 'yarn' | 'pnpm' | 'bun';
 
 type CustomConverter = [name: string, cb: (npmCode: string) => string];
 
@@ -91,7 +90,7 @@ const transformNode = (
         code: npmToYarn(npmCode, converter),
         node,
         value: converter,
-        label: converter === 'yarn' ? 'Yarn' : converter,
+        label: getLabelForConverter(converter),
       });
     }
     const [converterName, converterFn] = converter;
@@ -100,6 +99,17 @@ const transformNode = (
       node,
       value: converterName,
     });
+  }
+
+  function getLabelForConverter(converter: KnownConverter) {
+    switch (converter) {
+      case 'yarn':
+        return 'Yarn';
+      case 'bun':
+        return 'Bun';
+      default:
+        return converter;
+    }
   }
 
   return [
@@ -173,7 +183,9 @@ function createImportNode() {
 const plugin: Plugin<[PluginOptions?]> = (options = {}): Transformer => {
   // @ts-expect-error: todo temporary
   const {sync = false, converters = ['yarn', 'pnpm']} = options;
-  return (root) => {
+  return async (root) => {
+    const {visit} = await import('unist-util-visit');
+
     let transformed = false;
     let alreadyImported = false;
 

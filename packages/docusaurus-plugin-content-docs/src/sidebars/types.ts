@@ -217,6 +217,7 @@ export type PropSidebarBreadcrumbsItem =
 export type CategoryMetadataFile = {
   label?: string;
   position?: number;
+  description?: string;
   collapsed?: boolean;
   collapsible?: boolean;
   className?: string;
@@ -235,7 +236,6 @@ export type CategoryMetadataFile = {
 export type SidebarItemsGeneratorDoc = Pick<
   DocMetadataBase,
   | 'id'
-  | 'unversionedId'
   | 'title'
   | 'frontMatter'
   | 'source'

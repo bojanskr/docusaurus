@@ -6,17 +6,20 @@
  */
 
 import path from 'path';
-import webpack, {type Configuration} from 'webpack';
-import WebpackBar from 'webpackbar';
-import Terser from 'terser-webpack-plugin';
+import {type Configuration} from 'webpack';
+import {
+  compile,
+  getProgressBarPlugin,
+  getMinimizers,
+} from '@docusaurus/bundler';
 import {injectManifest} from 'workbox-build';
 import {normalizeUrl} from '@docusaurus/utils';
-import {compile} from '@docusaurus/core/lib/webpack/utils';
+import logger from '@docusaurus/logger';
 import {readDefaultCodeTranslationMessages} from '@docusaurus/theme-translations';
 import type {HtmlTags, LoadContext, Plugin} from '@docusaurus/types';
 import type {PluginOptions} from '@docusaurus/plugin-pwa';
 
-const isProd = process.env.NODE_ENV === 'production';
+const PluginName = 'docusaurus-plugin-pwa';
 
 function getSWBabelLoader() {
   return {
@@ -30,7 +33,7 @@ function getSWBabelLoader() {
           {
             useBuiltIns: 'entry',
             corejs: '3',
-            // See https://twitter.com/jeffposnick/status/1280223070876315649
+            // See https://x.com/jeffposnick/status/1280223070876315649
             targets: 'chrome >= 56',
           },
         ],
@@ -42,7 +45,17 @@ function getSWBabelLoader() {
 export default function pluginPWA(
   context: LoadContext,
   options: PluginOptions,
-): Plugin<void> {
+): Plugin<void> | null {
+  if (process.env.NODE_ENV !== 'production') {
+    return null;
+  }
+  if (context.siteConfig.future.experimental_router === 'hash') {
+    logger.warn(
+      `${PluginName} does not support the Hash Router and will be disabled.`,
+    );
+    return null;
+  }
+
   const {
     outDir,
     baseUrl,
@@ -58,7 +71,7 @@ export default function pluginPWA(
   } = options;
 
   return {
-    name: 'docusaurus-plugin-pwa',
+    name: PluginName,
 
     getThemePath() {
       return '../lib/theme';
@@ -68,7 +81,7 @@ export default function pluginPWA(
     },
 
     getClientModules() {
-      return isProd && swRegister ? [swRegister] : [];
+      return swRegister ? [swRegister] : [];
     },
 
     getDefaultCodeTranslationMessages() {
@@ -78,14 +91,10 @@ export default function pluginPWA(
       });
     },
 
-    configureWebpack(config) {
-      if (!isProd) {
-        return {};
-      }
-
+    configureWebpack(config, isServer, {currentBundler}) {
       return {
         plugins: [
-          new webpack.EnvironmentPlugin({
+          new currentBundler.instance.EnvironmentPlugin({
             PWA_DEBUG: debug,
             PWA_SERVICE_WORKER_URL: path.posix.resolve(
               `${(config.output?.publicPath as string) || '/'}`,
@@ -100,38 +109,36 @@ export default function pluginPWA(
 
     injectHtmlTags() {
       const headTags: HtmlTags = [];
-      if (isProd) {
-        pwaHead.forEach(({tagName, ...attributes}) => {
-          (['href', 'content'] as const).forEach((attribute) => {
-            const attributeValue = attributes[attribute];
+      pwaHead.forEach(({tagName, ...attributes}) => {
+        (['href', 'content'] as const).forEach((attribute) => {
+          const attributeValue = attributes[attribute];
 
-            if (!attributeValue) {
-              return;
-            }
+          if (!attributeValue) {
+            return;
+          }
 
-            const attributePath =
-              !!path.extname(attributeValue) && attributeValue;
+          const attributePath =
+            !!path.extname(attributeValue) && attributeValue;
 
-            if (attributePath && !attributePath.startsWith(baseUrl)) {
-              attributes[attribute] = normalizeUrl([baseUrl, attributeValue]);
-            }
-          });
-
-          return headTags.push({
-            tagName,
-            attributes,
-          });
+          if (attributePath && !attributePath.startsWith(baseUrl)) {
+            attributes[attribute] = normalizeUrl([baseUrl, attributeValue]);
+          }
         });
-      }
+
+        return headTags.push({
+          tagName,
+          attributes,
+        });
+      });
       return {headTags};
     },
 
     async postBuild(props) {
-      if (!isProd) {
-        return;
-      }
-
       const swSourceFileTest = /\.m?js$/;
+
+      const ProgressBarPlugin = await getProgressBarPlugin({
+        currentBundler: props.currentBundler,
+      });
 
       const swWebpackConfig: Configuration = {
         entry: require.resolve('./sw.js'),
@@ -149,18 +156,17 @@ export default function pluginPWA(
           // See https://developers.google.com/web/tools/workbox/guides/using-bundlers#webpack
           minimizer: debug
             ? []
-            : [
-                new Terser({
-                  test: swSourceFileTest,
-                }),
-              ],
+            : await getMinimizers({
+                faster: props.siteConfig.future.experimental_faster,
+                currentBundler: props.currentBundler,
+              }),
         },
         plugins: [
-          new webpack.EnvironmentPlugin({
+          new props.currentBundler.instance.EnvironmentPlugin({
             // Fallback value required with Webpack 5
             PWA_SW_CUSTOM: swCustom ?? '',
           }),
-          new WebpackBar({
+          new ProgressBarPlugin({
             name: 'Service Worker',
             color: 'red',
           }),
@@ -176,7 +182,10 @@ export default function pluginPWA(
         },
       };
 
-      await compile([swWebpackConfig]);
+      await compile({
+        configs: [swWebpackConfig],
+        currentBundler: props.currentBundler,
+      });
 
       const swDest = path.resolve(props.outDir, 'sw.js');
 

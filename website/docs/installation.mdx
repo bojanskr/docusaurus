@@ -9,7 +9,7 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 ```
 
-Docusaurus is essentially a set of npm [packages](https://github.com/facebook/docusaurus/tree/main/packages).
+Docusaurus consists of a set of npm [packages](https://github.com/facebook/docusaurus/tree/main/packages).
 
 :::tip
 
@@ -21,12 +21,12 @@ Use **[docusaurus.new](https://docusaurus.new)** to test Docusaurus immediately 
 
 ## Requirements {#requirements}
 
-- [Node.js](https://nodejs.org/en/download/) version 16.14 or above (which can be checked by running `node -v`). You can use [nvm](https://github.com/nvm-sh/nvm) for managing multiple Node versions on a single machine installed.
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+- [Node.js](https://nodejs.org/en/download/) version 18.0 or above (which can be checked by running `node -v`). You can use [nvm](https://github.com/nvm-sh/nvm) to manage multiple Node.js versions on a single machine.
+  - When installing Node.js, it is recommended to check all checkboxes related to dependencies.
 
 ## Scaffold project website {#scaffold-project-website}
 
-The easiest way to install Docusaurus is to use the command line tool that helps you scaffold a skeleton Docusaurus website. You can run this command anywhere in a new empty repository or within an existing repository, it will create a new directory containing the scaffolded files.
+The easiest way to install Docusaurus is to use the [`create-docusaurus`](./api/misc/create-docusaurus.mdx) command line tool that helps you scaffold a skeleton Docusaurus website. You can run this command anywhere in a new empty repository or within an existing repository, it will create a new directory containing the scaffolded files.
 
 ```bash
 npx create-docusaurus@latest my-website classic
@@ -40,7 +40,7 @@ You can also use the template's TypeScript variant by passing the `--typescript`
 npx create-docusaurus@latest my-website classic --typescript
 ```
 
-:::info FB-Only
+:::info Meta-Only
 
 If you are setting up a new Docusaurus website for a Meta open source project, run this command inside an internal repository, which comes with some useful Meta-specific defaults:
 
@@ -106,7 +106,7 @@ my-website
 
 ### Monorepos {#monorepos}
 
-If you are using Docusaurus for documentation of an existing project, a monorepo may be the solution for you. Monorepos allow you to share dependencies between similar projects. For example, your website may use your local packages to showcase the latest features, instead of depending on a released version; your contributors can also conveniently update the docs as they implement features. An example monorepo folder structure is below:
+If you are using Docusaurus for documentation of an existing project, a monorepo may be the solution for you. Monorepos allow you to share dependencies between similar projects. For example, your website may use your local packages to showcase latest features instead of depending on a released version. Then, your contributors can update the docs as they implement features. An example monorepo folder structure is below:
 
 ```bash
 my-monorepo
@@ -135,7 +135,7 @@ cd my-website
 npm run start
 ```
 
-By default, a browser window will open at [http://localhost:3000](http://localhost:3000).
+By default, a browser window will open at [`http://localhost:3000`](http://localhost:3000).
 
 Congratulations! You have just created your first Docusaurus site! Browse around the site to see what's available.
 
@@ -163,6 +163,12 @@ Then, in the directory containing `package.json`, run your package manager's ins
 npm install
 ```
 
+:::tip
+
+`npm install` may report several vulnerabilities and recommend running `npm audit` to address them. Typically, these reported vulnerabilities, such as RegExp DOS vulnerabilities, are harmless and can be safely ignored. Also read this article, which reflects our thinking: [npm audit: Broken by Design](https://overreacted.io/npm-audit-broken-by-design/).
+
+:::
+
 To check that the update occurred successfully, run:
 
 ```bash
@@ -174,7 +180,7 @@ You should see the correct version as output.
 Alternatively, if you are using Yarn, you can do:
 
 ```bash
-yarn upgrade @docusaurus/core@latest @docusaurus/preset-classic@latest
+yarn add @docusaurus/core @docusaurus/preset-classic
 ```
 
 :::tip
@@ -185,4 +191,4 @@ Use new unreleased features of Docusaurus with the [`@canary` npm dist tag](/com
 
 ## Problems? {#problems}
 
-Ask for help on [Stack Overflow](https://stackoverflow.com/questions/tagged/docusaurus), on our [GitHub repository](https://github.com/facebook/docusaurus), our [Discord server](https://discordapp.com/invite/docusaurus), or [Twitter](https://twitter.com/docusaurus).
+Ask for help on [Stack Overflow](https://stackoverflow.com/questions/tagged/docusaurus), on our [GitHub repository](https://github.com/facebook/docusaurus), our [Discord server](https://discordapp.com/invite/docusaurus), or [X](https://x.com/docusaurus).

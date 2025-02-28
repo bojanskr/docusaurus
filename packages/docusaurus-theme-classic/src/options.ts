@@ -5,14 +5,20 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import defaultPrismTheme from 'prism-react-renderer/themes/palenight';
+import {themes} from 'prism-react-renderer';
 import {Joi, URISchema} from '@docusaurus/utils-validation';
+import type {
+  PropVersionItem,
+  PropVersionItems,
+} from '@theme/NavbarItem/DocsVersionDropdownNavbarItem';
 import type {Options, PluginOptions} from '@docusaurus/theme-classic';
 import type {ThemeConfig} from '@docusaurus/theme-common';
 import type {
   ThemeConfigValidationContext,
   OptionValidationContext,
 } from '@docusaurus/types';
+
+const defaultPrismTheme = themes.palenight;
 
 const DEFAULT_DOCS_CONFIG: ThemeConfig['docs'] = {
   versionPersistence: 'localStorage',
@@ -21,17 +27,30 @@ const DEFAULT_DOCS_CONFIG: ThemeConfig['docs'] = {
     autoCollapseCategories: false,
   },
 };
-const DocsSchema = Joi.object({
+
+const DocsSchema = Joi.object<ThemeConfig['docs']>({
   versionPersistence: Joi.string()
     .equal('localStorage', 'none')
     .default(DEFAULT_DOCS_CONFIG.versionPersistence),
-  sidebar: Joi.object({
+  sidebar: Joi.object<ThemeConfig['docs']['sidebar']>({
     hideable: Joi.bool().default(DEFAULT_DOCS_CONFIG.sidebar.hideable),
     autoCollapseCategories: Joi.bool().default(
       DEFAULT_DOCS_CONFIG.sidebar.autoCollapseCategories,
     ),
   }).default(DEFAULT_DOCS_CONFIG.sidebar),
 }).default(DEFAULT_DOCS_CONFIG);
+
+const DEFAULT_BLOG_CONFIG: ThemeConfig['blog'] = {
+  sidebar: {
+    groupByYear: true,
+  },
+};
+
+const BlogSchema = Joi.object<ThemeConfig['blog']>({
+  sidebar: Joi.object<ThemeConfig['blog']['sidebar']>({
+    groupByYear: Joi.bool().default(DEFAULT_BLOG_CONFIG.sidebar.groupByYear),
+  }).default(DEFAULT_BLOG_CONFIG.sidebar),
+}).default(DEFAULT_BLOG_CONFIG);
 
 const DEFAULT_COLOR_MODE_CONFIG: ThemeConfig['colorMode'] = {
   defaultMode: 'light',
@@ -42,6 +61,7 @@ const DEFAULT_COLOR_MODE_CONFIG: ThemeConfig['colorMode'] = {
 export const DEFAULT_CONFIG: ThemeConfig = {
   colorMode: DEFAULT_COLOR_MODE_CONFIG,
   docs: DEFAULT_DOCS_CONFIG,
+  blog: DEFAULT_BLOG_CONFIG,
   metadata: [],
   prism: {
     additionalLanguages: [],
@@ -194,6 +214,17 @@ const DocsVersionDropdownNavbarItemSchema = NavbarItemBaseSchema.append({
   dropdownActiveClassDisabled: Joi.boolean(),
   dropdownItemsBefore: Joi.array().items(DropdownSubitemSchema).default([]),
   dropdownItemsAfter: Joi.array().items(DropdownSubitemSchema).default([]),
+  versions: Joi.alternatives().try(
+    Joi.array().items(Joi.string().min(1)).min(1),
+    Joi.object<PropVersionItems>()
+      .pattern(
+        Joi.string().min(1),
+        Joi.object<PropVersionItem>({
+          label: Joi.string().min(1),
+        }),
+      )
+      .min(1),
+  ),
 });
 
 const LocaleDropdownNavbarItemSchema = NavbarItemBaseSchema.append({
@@ -292,6 +323,7 @@ const FooterLinkItemSchema = Joi.object({
   href: URISchema,
   html: Joi.string(),
   label: Joi.string(),
+  className: Joi.string(),
 })
   .xor('to', 'href', 'html')
   .with('to', 'label')
@@ -300,6 +332,12 @@ const FooterLinkItemSchema = Joi.object({
   // We allow any unknown attributes on the links (users may need additional
   // attributes like target, aria-role, data-customAttribute...)
   .unknown();
+
+const FooterColumnItemSchema = Joi.object({
+  title: Joi.string().allow(null).default(null),
+  className: Joi.string(),
+  items: Joi.array().items(FooterLinkItemSchema).default([]),
+});
 
 const LogoSchema = Joi.object({
   alt: Joi.string().allow(''),
@@ -312,6 +350,10 @@ const LogoSchema = Joi.object({
   style: Joi.object(),
   className: Joi.string(),
 });
+
+// Normalize prism language to lowercase
+// See https://github.com/facebook/docusaurus/issues/9012
+const PrismLanguage = Joi.string().custom((val) => val.toLowerCase());
 
 export const ThemeConfigSchema = Joi.object<ThemeConfig>({
   // TODO temporary (@alpha-58)
@@ -328,6 +370,7 @@ export const ThemeConfigSchema = Joi.object<ThemeConfig>({
   colorMode: ColorModeSchema,
   image: Joi.string(),
   docs: DocsSchema,
+  blog: BlogSchema,
   metadata: Joi.array()
     .items(HtmlMetadataSchema)
     .default(DEFAULT_CONFIG.metadata),
@@ -363,12 +406,7 @@ export const ThemeConfigSchema = Joi.object<ThemeConfig>({
     logo: LogoSchema,
     copyright: Joi.string(),
     links: Joi.alternatives(
-      Joi.array().items(
-        Joi.object({
-          title: Joi.string().allow(null).default(null),
-          items: Joi.array().items(FooterLinkItemSchema).default([]),
-        }),
-      ),
+      Joi.array().items(FooterColumnItemSchema),
       Joi.array().items(FooterLinkItemSchema),
     )
       .messages({
@@ -385,9 +423,9 @@ export const ThemeConfigSchema = Joi.object<ThemeConfig>({
       plain: Joi.alternatives().try(Joi.array(), Joi.object()).required(),
       styles: Joi.alternatives().try(Joi.array(), Joi.object()).required(),
     }),
-    defaultLanguage: Joi.string(),
+    defaultLanguage: PrismLanguage,
     additionalLanguages: Joi.array()
-      .items(Joi.string())
+      .items(PrismLanguage)
       .default(DEFAULT_CONFIG.prism.additionalLanguages),
     magicComments: Joi.array()
       .items(

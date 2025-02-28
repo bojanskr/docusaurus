@@ -21,20 +21,26 @@
   ],
   "ignorePaths": [
     "CHANGELOG.md",
+    "patches",
     "packages/docusaurus-theme-translations/locales",
     "package.json",
     "yarn.lock",
     "project-words.txt",
     "__snapshots__",
+    "admin/scripts",
     "website/src/data/users.tsx",
     "website/src/data/tweets.tsx",
     "website/docusaurus.config.localized.json",
+    "website/_dogfooding/_pages tests/diagrams.mdx",
     "*.xyz",
     "*.docx",
+    "*.xsl",
+    "*.xslt",
     "*.gitignore",
     "versioned_docs",
     "*.min.*",
     "jest/vendor"
   ],
-  "ignoreRegExpList": ["Email", "Urls", "#[\\w-]*"]
+  "ignoreRegExpList": ["Email", "Urls", "#[\\w-]*"],
+  "enableFiletypes": ["mdx"]
 }

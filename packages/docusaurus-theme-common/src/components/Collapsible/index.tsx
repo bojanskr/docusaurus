@@ -10,13 +10,13 @@ import React, {
   useEffect,
   useRef,
   useCallback,
-  useLayoutEffect,
   type RefObject,
   type Dispatch,
   type SetStateAction,
   type ReactNode,
 } from 'react';
-import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
+import useIsomorphicLayoutEffect from '@docusaurus/useIsomorphicLayoutEffect';
+import {prefersReducedMotion} from '../../utils/accessibilityUtils';
 
 const DefaultAnimationEasing = 'ease-in-out';
 
@@ -65,10 +65,6 @@ function applyCollapsedStyle(el: HTMLElement, collapsed: boolean) {
   el.style.height = collapsedStyles.height;
 }
 
-function userPrefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 /*
 Lex111: Dynamic transition duration is used in Material design, this technique
 is good for a large number of items.
@@ -76,7 +72,7 @@ https://material.io/archive/guidelines/motion/duration-easing.html#duration-easi
 https://github.com/mui-org/material-ui/blob/e724d98eba018e55e1a684236a2037e24bcf050c/packages/material-ui/src/styles/createTransitions.js#L40-L43
  */
 function getAutoHeightDuration(height: number) {
-  if (userPrefersReducedMotion()) {
+  if (prefersReducedMotion()) {
     // Not using 0 because it prevents onTransitionEnd to fire and bubble up :/
     // See https://github.com/facebook/docusaurus/pull/8906
     return 1;
@@ -95,7 +91,7 @@ function useCollapseAnimation({
   collapsed,
   animation,
 }: {
-  collapsibleRef: RefObject<HTMLElement>;
+  collapsibleRef: RefObject<HTMLElement | null>;
   collapsed: boolean;
   animation?: CollapsibleAnimationConfig;
 }) {
@@ -160,17 +156,6 @@ type CollapsibleElementType = React.ElementType<
   Pick<React.HTMLAttributes<unknown>, 'className' | 'onTransitionEnd' | 'style'>
 >;
 
-/**
- * Prevent hydration layout shift before animations are handled imperatively
- * with JS
- */
-function getSSRStyle(collapsed: boolean) {
-  if (ExecutionEnvironment.canUseDOM) {
-    return undefined;
-  }
-  return collapsed ? CollapsedStyles : ExpandedStyles;
-}
-
 type CollapsibleBaseProps = {
   /** The actual DOM element to be used in the markup. */
   as?: CollapsibleElementType;
@@ -188,12 +173,6 @@ type CollapsibleBaseProps = {
   onCollapseTransitionEnd?: (collapsed: boolean) => void;
   /** Class name for the underlying DOM element. */
   className?: string;
-  /**
-   * This is mostly useful for details/summary component where ssrStyle is not
-   * needed (as details are hidden natively) and can mess up with the browser's
-   * native behavior when JS fails to load or is disabled
-   */
-  disableSSRStyle?: boolean;
 };
 
 function CollapsibleBase({
@@ -203,7 +182,6 @@ function CollapsibleBase({
   animation,
   onCollapseTransitionEnd,
   className,
-  disableSSRStyle,
 }: CollapsibleBaseProps) {
   const collapsibleRef = useRef<HTMLElement>(null);
 
@@ -214,7 +192,6 @@ function CollapsibleBase({
       // @ts-expect-error: the "too complicated type" is produced from
       // "CollapsibleElementType" being a huge union
       ref={collapsibleRef as RefObject<never>} // Refs are contravariant, which is not expressible in TS
-      style={disableSSRStyle ? undefined : getSSRStyle(collapsed)}
       onTransitionEnd={(e: React.TransitionEvent) => {
         if (e.propertyName !== 'height') {
           return;
@@ -234,13 +211,13 @@ function CollapsibleLazy({collapsed, ...props}: CollapsibleBaseProps) {
   // Updated in effect so that first expansion transition can work
   const [lazyCollapsed, setLazyCollapsed] = useState(collapsed);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!collapsed) {
       setMounted(true);
     }
   }, [collapsed]);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (mounted) {
       setLazyCollapsed(collapsed);
     }
@@ -266,7 +243,7 @@ type CollapsibleProps = CollapsibleBaseProps & {
  * component will be invisible (zero height) when collapsed. Doesn't provide
  * interactivity by itself: collapse state is toggled through props.
  */
-export function Collapsible({lazy, ...props}: CollapsibleProps): JSX.Element {
+export function Collapsible({lazy, ...props}: CollapsibleProps): ReactNode {
   const Comp = lazy ? CollapsibleLazy : CollapsibleBase;
   return <Comp {...props} />;
 }

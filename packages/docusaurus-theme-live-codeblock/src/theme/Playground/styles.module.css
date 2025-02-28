@@ -34,11 +34,11 @@
   direction: ltr;
 }
 
+.playgroundEditor pre {
+  border-radius: 0;
+}
+
 .playgroundPreview {
   padding: 1rem;
   background-color: var(--ifm-pre-background);
-}
-
-.errorFallback {
-  padding: 0.55rem;
 }

@@ -7,15 +7,18 @@
 
 import path from 'path';
 import fs from 'fs-extra';
-import importFresh from 'import-fresh';
 import logger from '@docusaurus/logger';
-import {DEFAULT_CONFIG_FILE_NAME, findAsyncSequential} from '@docusaurus/utils';
+import {
+  DEFAULT_CONFIG_FILE_NAME,
+  findAsyncSequential,
+  loadFreshModule,
+} from '@docusaurus/utils';
 import {validateConfig} from './configValidation';
 import type {LoadContext} from '@docusaurus/types';
 
 async function findConfig(siteDir: string) {
   // We could support .mjs, .ts, etc. in the future
-  const candidates = ['.js', '.cjs'].map(
+  const candidates = ['.ts', '.mts', '.cts', '.js', '.mjs', '.cjs'].map(
     (ext) => DEFAULT_CONFIG_FILE_NAME + ext,
   );
   const configPath = await findAsyncSequential(
@@ -23,10 +26,11 @@ async function findConfig(siteDir: string) {
     fs.pathExists,
   );
   if (!configPath) {
-    logger.error('No config file found.');
-    logger.info`Expected one of:${candidates}
-You can provide a custom config path with the code=${'--config'} option.`;
-    throw new Error();
+    const relativeSiteDir = path.relative(process.cwd(), siteDir);
+    throw new Error(logger.interpolate`No config file found in site dir code=${relativeSiteDir}.
+Expected one of:${candidates.map(logger.code)}
+You can provide a custom config path with the code=${'--config'} option.
+    `);
   }
   return configPath;
 }
@@ -46,7 +50,7 @@ export async function loadSiteConfig({
     throw new Error(`Config file at "${siteConfigPath}" not found.`);
   }
 
-  const importedConfig = importFresh(siteConfigPath);
+  const importedConfig = await loadFreshModule(siteConfigPath);
 
   const loadedConfig: unknown =
     typeof importedConfig === 'function'

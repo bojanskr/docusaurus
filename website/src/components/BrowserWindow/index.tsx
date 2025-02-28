@@ -24,7 +24,7 @@ export default function BrowserWindow({
   url = 'http://localhost:3000',
   style,
   bodyStyle,
-}: Props): JSX.Element {
+}: Props): ReactNode {
   return (
     <div className={styles.browserWindow} style={{...style, minHeight}}>
       <div className={styles.browserWindowHeader}>
@@ -48,20 +48,6 @@ export default function BrowserWindow({
       <div className={styles.browserWindowBody} style={bodyStyle}>
         {children}
       </div>
-    </div>
-  );
-}
-
-// Quick and dirty component, to improve later if needed
-export function IframeWindow({url}: {url: string}): JSX.Element {
-  return (
-    <div style={{padding: 10}}>
-      <BrowserWindow
-        url={url}
-        style={{minWidth: '40vw', maxWidth: 400}}
-        bodyStyle={{padding: 0}}>
-        <iframe src={url} title={url} style={{width: '100%', height: 300}} />
-      </BrowserWindow>
     </div>
   );
 }

@@ -23,12 +23,22 @@ export default function prismIncludeLanguages(
   // avoid polluting global namespace.
   // You can mutate PrismObject: registering plugins, deleting languages... As
   // long as you don't re-assign it
+
+  const PrismBefore = globalThis.Prism;
   globalThis.Prism = PrismObject;
 
   additionalLanguages.forEach((lang) => {
+    if (lang === 'php') {
+      // eslint-disable-next-line global-require
+      require('prismjs/components/prism-markup-templating.js');
+    }
     // eslint-disable-next-line global-require, import/no-dynamic-require
     require(`prismjs/components/prism-${lang}`);
   });
 
+  // Clean up and eventually restore former globalThis.Prism object (if any)
   delete (globalThis as Optional<typeof globalThis, 'Prism'>).Prism;
+  if (typeof PrismBefore !== 'undefined') {
+    globalThis.Prism = PrismObject;
+  }
 }
